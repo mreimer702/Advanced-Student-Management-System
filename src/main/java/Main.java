@@ -3,12 +3,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Scanner;
+import java.io.File;
+import java.io.IOException;
 
 public class Main {
 
     //Global variables
     static Scanner scanner = new Scanner(System.in);
-
     public static void main(String[] args) {
 
         try (Statement stmt = DatabaseConnection.getConnection().createStatement()) {
@@ -19,6 +20,19 @@ public class Main {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        File file = new File("students.txt");
+
+        try {
+            if (file.createNewFile()) {
+                System.out.println("File created: " + file.getName());
+            }
+            else{
+                System.out.println("Student File Ready for Updates");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
         // Menu for SMS
         boolean inMenu = true;
         while (inMenu) {
