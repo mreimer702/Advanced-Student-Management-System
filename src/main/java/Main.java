@@ -2,13 +2,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Main {
 
     //Global variables
-    static ArrayList<Student> students = new ArrayList<>();
     static Scanner scanner = new Scanner(System.in);
 
     public static void main(String[] args) {
@@ -127,7 +125,6 @@ public class Main {
         }
 
         Student newStudent = new Student(nameInput, ageInput, emailInput, gradeInput);
-        students.add(newStudent);
         System.out.println(newStudent.getName() + " added successfully.");
     }
 
