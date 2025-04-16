@@ -1,15 +1,16 @@
+import java.io.*;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Scanner;
-import java.io.File;
-import java.io.IOException;
 
 public class Main {
 
     //Global variables
     static Scanner scanner = new Scanner(System.in);
+    private static final String TEXT_FILE = "students.txt";
+
     public static void main(String[] args) {
 
         try (Statement stmt = DatabaseConnection.getConnection().createStatement()) {
@@ -80,51 +81,25 @@ public class Main {
     // Functions for the SMS
     public static void addStudent() {
         System.out.println("Enter student's name: ");
-        String nameInput = scanner.nextLine();
-        while (nameInput.trim().isEmpty()) {
-            System.out.println("Please enter a student name:");
-            nameInput = scanner.nextLine();
+        String nameInput = scanner.nextLine().trim();
+        while (nameInput.isEmpty()) {
+            System.out.println("Name cannot be empty. Please enter a student name:");
+            nameInput = scanner.nextLine().trim();
         }
 
-        int ageInput = 0;
-        while (ageInput <= 0) {
-            System.out.println("Enter student's age: ");
-            if (scanner.hasNextInt()) {
-                ageInput = scanner.nextInt();
-                scanner.nextLine();
-                if (ageInput <= 0) {
-                    System.out.println("Age must be greater than 0.");
-                }
-            } else {
-                System.out.println("Invalid input. Please enter a numeric age.");
-                scanner.nextLine();
-            }
-        }
+        int ageInput = getValidatedIntInput("Enter student's age: ");
+        int gradeInput = getValidatedIntInput("Enter student's grade: ");
 
         System.out.println("Enter student's email: ");
-        String emailInput = scanner.nextLine();
-        while (emailInput.trim().isEmpty()) {
+        String emailInput = scanner.nextLine().trim();
+        while (!emailInput.matches("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$")) {
             System.out.println("Please enter a valid student email:");
-            emailInput = scanner.nextLine();
+            emailInput = scanner.nextLine().trim();
         }
 
-        int gradeInput = 0;
-        while (gradeInput <= 0) {
-            System.out.println("Enter student's grade: ");
-            if (scanner.hasNextInt()) {
-                gradeInput = scanner.nextInt();
-                scanner.nextLine();
-                if (gradeInput <= 0) {
-                    System.out.println("Grade must be greater than 0.");
-                }
-            } else {
-                System.out.println("Invalid input. Please enter a numeric grade.");
-                scanner.nextLine();
-            }
-        }
-
+        int generatedId = -1;
         try (PreparedStatement insertStudent = DatabaseConnection.getConnection().prepareStatement(
-                "INSERT INTO users (name, age, email, grade) VALUES (?, ?, ?, ?)")) {
+                "INSERT INTO users (name, age, email, grade) VALUES (?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
 
             insertStudent.setString(1, nameInput);
             insertStudent.setInt(2, ageInput);
@@ -133,18 +108,52 @@ public class Main {
 
             insertStudent.executeUpdate();
 
+            // Retrieve generated ID
+            ResultSet keys = insertStudent.getGeneratedKeys();
+            if (keys.next()) {
+                generatedId = keys.getInt(1);
+            }
+
         } catch (SQLException e) {
             System.out.println("Error adding student: " + e.getMessage());
             return;
+        }
+
+
+        try (FileWriter fw = new FileWriter(TEXT_FILE, true);
+             BufferedWriter bw = new BufferedWriter(fw);
+             PrintWriter out = new PrintWriter(bw)) {
+            out.println("ID: " + generatedId + ", Name: " + nameInput + ", Age: " + ageInput +
+                    ", Email: " + emailInput + ", Grade: " + gradeInput);
+        } catch (IOException e) {
+            System.out.println("Failed to write to file: " + e.getMessage());
         }
 
         Student newStudent = new Student(nameInput, ageInput, emailInput, gradeInput);
         System.out.println(newStudent.getName() + " added successfully.");
     }
 
+    // Helper method for validated numeric input
+    private static int getValidatedIntInput(String prompt) {
+        int input = 0;
+        while (input <= 0) {
+            System.out.println(prompt);
+            if (scanner.hasNextInt()) {
+                input = scanner.nextInt();
+                scanner.nextLine();
+                if (input <= 0) {
+                    System.out.println("Value must be greater than 0.");
+                }
+            } else {
+                System.out.println("Invalid input. Please enter a number.");
+                scanner.nextLine();
+            }
+        }
+        return input;
+    }
 
     public static void getStudents() {
-        System.out.println("List of Students By ID");
+        System.out.println("===== Students from Database =====");
 
         try (Statement stmt = DatabaseConnection.getConnection().createStatement()) {
             String query = "SELECT * FROM users";
@@ -154,15 +163,39 @@ public class Main {
 
             while (rs.next()) {
                 hasStudents = true;
-                System.out.println(rs.getInt("id") + ". " + rs.getString("name"));
+                System.out.println("ID: " + rs.getInt("id") +
+                        ", Name: " + rs.getString("name") +
+                        ", Age: " + rs.getInt("age") +
+                        ", Email: " + rs.getString("email") +
+                        ", Grade: " + rs.getInt("grade"));
             }
 
             if (!hasStudents) {
-                System.out.println("There are no students currently listed");
+                System.out.println("There are no students currently listed in the database.");
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            System.out.println("Database error: " + e.getMessage());
+            return;
+        }
+
+        System.out.println("\n===== Students from File =====");
+
+        try (BufferedReader br = new BufferedReader(new FileReader(TEXT_FILE))) {
+            String line;
+            boolean hasLines = false;
+
+            while ((line = br.readLine()) != null) {
+                hasLines = true;
+                System.out.println(line);
+            }
+
+            if (!hasLines) {
+                System.out.println("There are no students currently listed in the file.");
+            }
+
+        } catch (IOException e) {
+            System.out.println("Error reading file: " + e.getMessage());
         }
     }
 
@@ -173,6 +206,7 @@ public class Main {
         scanner.nextLine();
 
         String query = "SELECT * FROM users WHERE id = ?";
+
 
         try (PreparedStatement stmt = DatabaseConnection.getConnection().prepareStatement(query)) {
             stmt.setInt(1, idInput);
@@ -195,13 +229,13 @@ public class Main {
     public static void updateStudent() {
         getStudents();
         System.out.println("Enter the ID of the student to update:");
-        int id = scanner.nextInt();
+        int idInput = scanner.nextInt();
         scanner.nextLine();
 
         String query = "SELECT * FROM users WHERE id = ?";
 
         try (PreparedStatement stmt = DatabaseConnection.getConnection().prepareStatement(query)) {
-            stmt.setInt(1, id);
+            stmt.setInt(1, idInput);
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
@@ -237,14 +271,14 @@ public class Main {
                     updateStmt.setInt(2, age);
                     updateStmt.setString(3, email);
                     updateStmt.setInt(4, grade);
-                    updateStmt.setInt(5, id);
+                    updateStmt.setInt(5, idInput);
 
                     updateStmt.executeUpdate();
                     System.out.println("Student updated successfully.");
                 }
 
             } else {
-                System.out.println("No student found with ID " + id);
+                System.out.println("No student found with ID " + idInput);
             }
 
         } catch (SQLException e) {
