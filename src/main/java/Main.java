@@ -180,26 +180,10 @@ public class Main {
 
         try (BufferedReader br = new BufferedReader(new FileReader(TEXT_FILE))) {
             String line;
-            boolean hasLines = false;
-
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
-                if (parts.length == 5) {
-                    String s = parts[0] +
-                            parts[1] +
-                            parts[2] +
-                            parts[3] +
-                            parts[4];
-                    System.out.println(s);
-                    students.add(s);
-                    hasLines = true;
-                } else {
-                    System.out.println("Malformed line in file: " + line);
-                }
-            }
-
-            if (!hasLines) {
-                System.out.println("There are no students currently listed in the file.");
+                System.out.println(Arrays.toString(parts));
+                students.add(Arrays.toString(parts));
             }
 
         } catch (IOException e) {
