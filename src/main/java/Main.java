@@ -3,10 +3,10 @@ import java.sql.*;
 import java.util.*;
 
 public class Main {
-
     //Global variables
     static Scanner scanner = new Scanner(System.in);
     private static final String TEXT_FILE = "students.txt";
+    public static List <String> students = new ArrayList<>();
 
     public static void main(String[] args) {
 
@@ -148,6 +148,8 @@ public class Main {
     }
 
     public static void getStudents() {
+        students.clear();
+
         System.out.println("===== Students from Database =====");
 
         try (Statement stmt = DatabaseConnection.getConnection().createStatement()) {
@@ -158,11 +160,13 @@ public class Main {
 
             while (rs.next()) {
                 hasStudents = true;
-                System.out.println("ID: " + rs.getInt("id") +
+                String s = "ID: " + rs.getInt("id") +
                         ", Name: " + rs.getString("name") +
                         ", Age: " + rs.getInt("age") +
                         ", Email: " + rs.getString("email") +
-                        ", Grade: " + rs.getInt("grade"));
+                        ", Grade: " + rs.getInt("grade");
+                System.out.println(s);
+                students.add(s);
             }
 
             if (!hasStudents) {
@@ -171,7 +175,6 @@ public class Main {
 
         } catch (SQLException e) {
             System.out.println("Database error: " + e.getMessage());
-            return;
         }
 
         System.out.println("\n===== Students from File =====");
@@ -181,8 +184,19 @@ public class Main {
             boolean hasLines = false;
 
             while ((line = br.readLine()) != null) {
-                hasLines = true;
-                System.out.println(line);
+                String[] parts = line.split(",");
+                if (parts.length == 5) {
+                    String s = "ID: " + parts[0] +
+                            ", Name: " + parts[1] +
+                            ", Age: " + parts[2] +
+                            ", Email: " + parts[3] +
+                            ", Grade: " + parts[4];
+                    System.out.println(s);
+                    students.add(s);
+                    hasLines = true;
+                } else {
+                    System.out.println("Malformed line in file: " + line);
+                }
             }
 
             if (!hasLines) {
@@ -193,6 +207,7 @@ public class Main {
             System.out.println("Error reading file: " + e.getMessage());
         }
     }
+
 
     public static void getStudentById() {
         getStudents();
