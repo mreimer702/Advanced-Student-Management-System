@@ -9,6 +9,7 @@ public class Streams {
         filterByGrade();
         countByGrade();
         sortAlphabeticallyByName();
+        ThreadsExample();
     }
 
     public static void filterByGrade() {
@@ -85,5 +86,47 @@ public class Streams {
 
         System.out.println("Students sorted alphabetically by name:");
         result.forEach(System.out::println);
+    }
+
+    public static void ThreadsExample() {
+        int size = Main.students.size();
+        int mid = size / 2;
+
+        Runnable task1 = () -> {
+            for (int i = 0; i < mid; i++) {
+                System.out.println("[Thread 1] " + Main.students.get(i));
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    System.err.println("Thread 1 interrupted.");
+                }
+            }
+        };
+
+        Runnable task2 = () -> {
+            for (int i = mid; i < size; i++) {
+                System.out.println("[Thread 2] " + Main.students.get(i));
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    System.err.println("Thread 2 interrupted.");
+                }
+            }
+        };
+
+        Thread thread1 = new Thread(task1);
+        Thread thread2 = new Thread(task2);
+
+        thread1.start();
+        thread2.start();
+
+        try {
+            thread1.join();
+            thread2.join();
+        } catch (InterruptedException e) {
+            System.err.println("Main thread interrupted.");
+        }
+
+        System.out.println("Both threads have finished processing students.");
     }
 }
