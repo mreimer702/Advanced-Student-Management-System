@@ -118,8 +118,7 @@ public class Main {
         try (FileWriter fw = new FileWriter(TEXT_FILE, true);
              BufferedWriter bw = new BufferedWriter(fw);
              PrintWriter out = new PrintWriter(bw)) {
-            out.println("ID: " + generatedId + ", Name: " + nameInput + ", Age: " + ageInput +
-                    ", Email: " + emailInput + ", Grade: " + gradeInput);
+            out.println(generatedId + " " + nameInput + " " + ageInput + " " + emailInput + " " + gradeInput);
         } catch (IOException e) {
             System.out.println("Failed to write to file: " + e.getMessage());
         }
@@ -160,11 +159,11 @@ public class Main {
 
             while (rs.next()) {
                 hasStudents = true;
-                String s = "ID: " + rs.getInt("id") +
-                        ", Name: " + rs.getString("name") +
-                        ", Age: " + rs.getInt("age") +
-                        ", Email: " + rs.getString("email") +
-                        ", Grade: " + rs.getInt("grade");
+                String s = rs.getInt("id") +
+                        rs.getString("name") +
+                        rs.getInt("age") +
+                        rs.getString("email") +
+                        rs.getInt("grade");
                 System.out.println(s);
                 students.add(s);
             }
@@ -184,13 +183,13 @@ public class Main {
             boolean hasLines = false;
 
             while ((line = br.readLine()) != null) {
-                String[] parts = line.split(",");
+                String[] parts = line.split(" ");
                 if (parts.length == 5) {
-                    String s = "ID: " + parts[0] +
-                            ", Name: " + parts[1] +
-                            ", Age: " + parts[2] +
-                            ", Email: " + parts[3] +
-                            ", Grade: " + parts[4];
+                    String s = parts[0] +
+                            parts[1] +
+                            parts[2] +
+                            parts[3] +
+                            parts[4];
                     System.out.println(s);
                     students.add(s);
                     hasLines = true;
@@ -242,7 +241,7 @@ public class Main {
             boolean found = false;
 
             while ((line = reader.readLine()) != null) {
-                String[] student = line.split(",");
+                String[] student = line.split(" ");
                 if (student.length != 5) continue;
 
                 int studentId = Integer.parseInt(student[0]);
@@ -309,11 +308,10 @@ public class Main {
 
                 String updateQuery = "UPDATE users SET name = ?, age = ?, email = ?, grade = ? WHERE id = ?";
                 try (PreparedStatement updateStmt = DatabaseConnection.getConnection().prepareStatement(updateQuery)) {
-                    updateStmt.setString(1, name);
-                    updateStmt.setInt(2, age);
-                    updateStmt.setString(3, email);
-                    updateStmt.setInt(4, grade);
-                    updateStmt.setInt(5, idInput);
+                    updateStmt.setString(2, name);
+                    updateStmt.setInt(3, age);
+                    updateStmt.setString(4, email);
+                    updateStmt.setInt(5, grade);
 
                     updateStmt.executeUpdate();
                     syncStudentToFile(idInput, name, age, email, grade);
@@ -338,7 +336,7 @@ public class Main {
             String line;
 
             while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(",");
+                String[] parts = line.split(" ");
                 if (parts.length != 5) {
                     lines.add(line);
                     continue;
@@ -407,7 +405,7 @@ public class Main {
         try (BufferedReader reader = new BufferedReader(new FileReader(TEXT_FILE))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(",");
+                String[] parts = line.split(" ");
                 if (parts.length != 5) {
                     lines.add(line);
                     continue;
@@ -497,7 +495,7 @@ public class Main {
         try (BufferedReader reader = new BufferedReader(new FileReader(TEXT_FILE))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(",");
+                String[] parts = line.split(" ");
                 if (parts.length == 5 && Integer.parseInt(parts[0]) == idToDelete) {
                     deleted = true;
                 } else {
