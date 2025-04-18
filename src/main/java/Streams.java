@@ -1,44 +1,27 @@
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Streams {
     static Scanner scanner = new Scanner(System.in);
-
-    public static void main(String[] args) {
-        Main.getStudents();
-        filterByGrade();
-        countByGrade();
-        sortAlphabeticallyByName();
-        ThreadsExample();
-    }
 
     public static void filterByGrade() {
         System.out.println("Enter a grade to view students from that grade:");
         int gradeInput = scanner.nextInt();
         scanner.nextLine();
 
-        List<String> result = Main.students.stream()
-                .filter(s -> {
-                    String[] parts = s.split(", ");
-                    for (String part : parts) {
-                        if (part.startsWith("Grade:")) {
-                            try {
-                                int grade = Integer.parseInt(part.replace("Grade:", "").trim());
-                                return grade == gradeInput;
-                            } catch (NumberFormatException e) {
-                                return false;
-                            }
-                        }
-                    }
-                    return false;
-                })
+        List<Student> results = Main.students.stream()
+                .filter(student -> student.getGrade() == gradeInput)
                 .collect(Collectors.toList());
 
-        if (result.isEmpty()) {
+        if (results.isEmpty()) {
             System.out.println("No students found in grade " + gradeInput + ".");
         } else {
             System.out.println("Students in grade " + gradeInput + ":");
-            result.forEach(System.out::println);
+            results.forEach(student ->
+                    System.out.println("Name: " + student.getName() + " , Age: " + student.getAge() + " , Email: " + student.getEmail())
+            );
+
         }
     }
 
@@ -48,53 +31,34 @@ public class Streams {
         scanner.nextLine();
 
         long result = Main.students.stream()
-                .filter(s -> {
-                    String[] parts = s.split(", ");
-                    for (String part : parts) {
-                        if (part.startsWith("Grade:")) {
-                            try {
-                                int grade = Integer.parseInt(part.replace("Grade:", "").trim());
-                                return grade == gradeInput;
-                            } catch (NumberFormatException e) {
-                                return false;
-                            }
-                        }
-                    }
-                    return false;
-                })
+                .filter(student -> student.getGrade() == gradeInput)
                 .count();
 
         if (result <= 0) {
             System.out.println("No students found in grade " + gradeInput + ".");
         } else {
-            System.out.println("There are " + result + " in grade " + gradeInput + ".");
+            System.out.println("There are " + result + " students in grade " + gradeInput + ".");
         }
     }
 
     public static void sortAlphabeticallyByName() {
-        List<String> result = Main.students.stream()
-                .sorted(Comparator.comparing(s -> {
-                    String[] parts = s.split(", ");
-                    for (String part : parts) {
-                        if (part.contains("Name:")) {
-                            return part.replace("Name:", "").trim().toLowerCase();
-                        }
-                    }
-                    return "";
-                }))
-                .collect(Collectors.toList());
+        Stream<Student> result = Main.students.stream()
+                        .sorted(Comparator.comparing(Person::getName));
 
         System.out.println("Students sorted alphabetically by name:");
-        result.forEach(System.out::println);
+        result.forEach(student ->
+                System.out.println(student.getName())
+        );
     }
 
-    public static void ThreadsExample() {
+    public static void threadsExample() {
         int size = Main.students.size();
         int mid = size / 2;
 
         Runnable task1 = () -> {
             for (int i = 0; i < mid; i++) {
-                System.out.println("[Thread 1] " + Main.students.get(i));
+                Student student = Main.students.get(i);
+                System.out.println("[Thread 1] " + student.getName());
                 try {
                     Thread.sleep(500);
                 } catch (InterruptedException e) {
@@ -105,7 +69,8 @@ public class Streams {
 
         Runnable task2 = () -> {
             for (int i = mid; i < size; i++) {
-                System.out.println("[Thread 2] " + Main.students.get(i));
+                Student student = Main.students.get(i);
+                System.out.println("[Thread 2] " + student.getName());
                 try {
                     Thread.sleep(500);
                 } catch (InterruptedException e) {
@@ -130,3 +95,4 @@ public class Streams {
         System.out.println("Both threads have finished processing students.");
     }
 }
+

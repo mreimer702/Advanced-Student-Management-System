@@ -6,7 +6,7 @@ public class Main {
     //Global variables
     static Scanner scanner = new Scanner(System.in);
     private static final String TEXT_FILE = "students.txt";
-    public static List <String> students = new ArrayList<>();
+    public static List <Student> students = new ArrayList<>();
 
     public static void main(String[] args) {
 
@@ -32,6 +32,7 @@ public class Main {
         }
 
         // Menu for SMS
+        loadFile();
         boolean inMenu = true;
         while (inMenu) {
             System.out.println("Student Management System Program: ");
@@ -41,7 +42,11 @@ public class Main {
             System.out.println("3. View every Student");
             System.out.println("4. Update Student");
             System.out.println("5. Delete Student");
-            System.out.println("6. Exit");
+            System.out.println("6. Filter By Grade");
+            System.out.println("7. Count By Grade");
+            System.out.println("8. Sort Students Alphabetically");
+            System.out.println("9. Threading Example");
+            System.out.println("10. Exit");
 
             System.out.println("Input the number of your choice: ");
 
@@ -65,6 +70,18 @@ public class Main {
                     deleteStudent();
                     break;
                 case 6:
+                    Streams.filterByGrade();
+                    break;
+                case 7:
+                    Streams.countByGrade();
+                    break;
+                case 8:
+                    Streams.sortAlphabeticallyByName();
+                    break;
+                case 9:
+                    Streams.threadsExample();
+                    break;
+                case 10:
                     System.out.println("Exiting the Student Management System");
                     inMenu = false;
                     break;
@@ -76,6 +93,45 @@ public class Main {
     }
 
     // Functions for the SMS
+    public static void loadFile(){
+        try (BufferedReader br = new BufferedReader(new FileReader(TEXT_FILE))) {
+            String line;
+            int lastId = 0;
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split(",");
+                lastId = Integer.parseInt(parts[0]);
+                Student addStudent = new Student(parts[1], Integer.parseInt(parts[2]),parts[3], Integer.parseInt(parts[4]));
+                students.add(addStudent);
+                try (PreparedStatement insertStudent = DatabaseConnection.getConnection().prepareStatement(
+                        "INSERT INTO users (id, name, age, email, grade) VALUES (?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+
+                    insertStudent.setInt(1, Integer.parseInt(parts[0]));
+                    insertStudent.setString(2, parts[1]);
+                    insertStudent.setInt(3, Integer.parseInt(parts[2]));
+                    insertStudent.setString(4, parts[3]);
+                    insertStudent.setInt(5, Integer.parseInt(parts[4]));
+
+                    insertStudent.executeUpdate();
+            } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+                int newId = lastId + 1;
+
+            String alterSQL = "ALTER TABLE users ALTER COLUMN id RESTART WITH " + newId;
+
+            try (PreparedStatement changeId = DatabaseConnection.getConnection().prepareStatement(alterSQL)) {
+                    changeId.executeUpdate();
+
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+
+        } catch (IOException e) {
+            System.out.println("Error reading file: " + e.getMessage());
+        }
+    }
+
     public static void addStudent() {
         System.out.println("Enter student's name: ");
         String nameInput = scanner.nextLine().trim();
@@ -93,6 +149,9 @@ public class Main {
             System.out.println("Please enter a valid student email:");
             emailInput = scanner.nextLine().trim();
         }
+
+        Student addStudent = new Student(nameInput, ageInput, emailInput, gradeInput);
+        students.add(addStudent);
 
         int generatedId = -1;
         try (PreparedStatement insertStudent = DatabaseConnection.getConnection().prepareStatement(
@@ -147,10 +206,6 @@ public class Main {
     }
 
     public static void getStudents() {
-        students.clear();
-
-        System.out.println("===== Students from Database =====");
-
         try (Statement stmt = DatabaseConnection.getConnection().createStatement()) {
             String query = "SELECT * FROM users";
             ResultSet rs = stmt.executeQuery(query);
@@ -165,7 +220,6 @@ public class Main {
                         rs.getString("email") + " | " +
                         rs.getInt("grade");
                 System.out.println(s);
-                students.add(s);
             }
 
             if (!hasStudents) {
@@ -174,20 +228,6 @@ public class Main {
 
         } catch (SQLException e) {
             System.out.println("Database error: " + e.getMessage());
-        }
-
-        System.out.println("\n===== Students from File =====");
-
-        try (BufferedReader br = new BufferedReader(new FileReader(TEXT_FILE))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] parts = line.split(",");
-                System.out.println(Arrays.toString(parts));
-                students.add(Arrays.toString(parts));
-            }
-
-        } catch (IOException e) {
-            System.out.println("Error reading file: " + e.getMessage());
         }
     }
 
@@ -210,46 +250,11 @@ public class Main {
                 System.out.println("Email: " + rs.getString("email"));
                 System.out.println("Grade: " + rs.getInt("grade"));
             } else {
-                System.out.println("No student with a matching ID found in the database. Checking file...");
-                getStudentByIdFromFile(idInput);
+                System.out.println("No student with a matching ID found in the database.");
             }
 
         } catch (SQLException e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    public static void getStudentByIdFromFile(int id) {
-        try (BufferedReader reader = new BufferedReader(new FileReader(TEXT_FILE))) {
-            String line;
-            boolean found = false;
-
-            while ((line = reader.readLine()) != null) {
-                String[] student = line.split(",");
-                if (student.length != 5) continue;
-
-                int studentId = Integer.parseInt(student[0]);
-                if (studentId == id) {
-                    String name = student[1];
-                    int age = Integer.parseInt(student[2]);
-                    String email = student[3];
-                    int grade = Integer.parseInt(student[4]);
-
-                    System.out.println(studentId + ". " + name);
-                    System.out.println("Age: " + age);
-                    System.out.println("Email: " + email);
-                    System.out.println("Grade: " + grade);
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) {
-                System.out.println("No student found with ID " + id + " in file.");
-            }
-
-        } catch (IOException e) {
-            System.out.println("Error reading student file: " + e.getMessage());
         }
     }
 
@@ -304,82 +309,11 @@ public class Main {
                 }
 
             } else {
-                System.out.println("No student found in database. Trying file...");
-                updateStudentInFile(idInput);
+                System.out.println("No student found in database.");
             }
 
         } catch (SQLException e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    public static void updateStudentInFile(int id) {
-        List<String> lines = new ArrayList<>();
-        boolean found = false;
-
-        try (BufferedReader reader = new BufferedReader(new FileReader(TEXT_FILE))) {
-            String line;
-
-            while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(",");
-                if (parts.length != 5) {
-                    lines.add(line);
-                    continue;
-                }
-
-                int studentId = Integer.parseInt(parts[0]);
-                if (studentId == id) {
-                    String currentName = parts[1];
-                    int currentAge = Integer.parseInt(parts[2]);
-                    String currentEmail = parts[3];
-                    int currentGrade = Integer.parseInt(parts[4]);
-
-                    System.out.println("Current student data:");
-                    System.out.println(studentId + ". " + currentName);
-                    System.out.println("Age: " + currentAge);
-                    System.out.println("Email: " + currentEmail);
-                    System.out.println("Grade: " + currentGrade);
-
-                    System.out.println("Enter new name (leave blank to keep current):");
-                    String name = scanner.nextLine();
-                    if (name.isEmpty()) name = currentName;
-
-                    System.out.println("Enter new age (or 0 to keep current):");
-                    int age = scanner.nextInt();
-                    scanner.nextLine();
-                    if (age <= 0) age = currentAge;
-
-                    System.out.println("Enter new email (leave blank to keep current):");
-                    String email = scanner.nextLine();
-                    if (email.isEmpty()) email = currentEmail;
-
-                    System.out.println("Enter new grade (or -1 to keep current):");
-                    int grade = scanner.nextInt();
-                    scanner.nextLine();
-                    if (grade < 0) grade = currentGrade;
-
-                    String updatedLine = studentId + "," + name + "," + age + "," + email + "," + grade;
-                    lines.add(updatedLine);
-                    found = true;
-                } else {
-                    lines.add(line);
-                }
-            }
-
-            if (found) {
-                try (BufferedWriter writer = new BufferedWriter(new FileWriter(TEXT_FILE))) {
-                    for (String l : lines) {
-                        writer.write(l);
-                        writer.newLine();
-                    }
-                    System.out.println("Student updated successfully in file.");
-                }
-            } else {
-                System.out.println("No student found with ID " + id + " in file.");
-            }
-
-        } catch (IOException e) {
-            System.out.println("Error updating student file: " + e.getMessage());
         }
     }
 
@@ -459,13 +393,6 @@ public class Main {
 
             } else {
                 System.out.println("No student found in the database with ID " + idToDelete);
-                System.out.println("Would you like to delete this student from the file instead? (yes/no)");
-                String fileDeleteConfirm = scanner.nextLine();
-                if (fileDeleteConfirm.equalsIgnoreCase("yes")) {
-                    deleteStudentFromFile(idToDelete);
-                } else {
-                    System.out.println("File deletion canceled.");
-                }
             }
 
         } catch (SQLException e) {
